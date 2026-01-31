@@ -8,35 +8,31 @@ st.set_page_config(
     layout="centered"
 )
 
-# Estética simple y espiritual
+# Estética
 st.title("🧘 Ramana Maharshi AI Guide")
-st.markdown("*La respuesta a cada pregunta es: ¿Quién soy yo?*")
+st.markdown("*La paz es tu naturaleza real. No dejes que nada la perturbe.*")
 st.divider()
 
-# 2. CARGA SEGURA DE API KEY
+# 2. CARGA DE API KEY
 try:
-    # Busca la clave en Settings > Secrets
     api_key = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=api_key)
 except Exception:
-    st.error("⚠️ Error: No se encontró la 'GOOGLE_API_KEY' en los Secrets de Streamlit.")
-    st.info("Ve a 'Manage App' > 'Settings' > 'Secrets' y añade: GOOGLE_API_KEY = 'tu_clave'")
+    st.error("⚠️ Configura GOOGLE_API_KEY en los Secrets de Streamlit.")
     st.stop()
 
-# 3. CONFIGURACIÓN DEL MODELO (Versión 2026)
-# Usamos gemini-2.0-flash por su velocidad y disponibilidad
-model = genai.GenerativeModel('gemini-2.0-flash-lite')
+# 3. SELECCIÓN DEL MODELO (Gemma 3 27B para aprovechar tu cuota disponible hoy)
+# Este modelo tiene 14,400 peticiones diarias según tu tabla.
+model = genai.GenerativeModel('gemma-3-27b-it')
 
-# Instrucción de personalidad (System Prompt)
+# Instrucción de personalidad
 SYSTEM_PROMPT = (
-    "Eres un guía espiritual basado exclusivamente en las enseñanzas de Ramana Maharshi. "
-    "Tus respuestas deben ser extremadamente breves, llenas de paz y silencio. "
-    "Tu objetivo no es dar información académica, sino dirigir la mente del usuario "
-    "hacia su origen a través de la auto-indagación (Atma-Vichara). "
-    "Si el usuario está confundido, recuérdale investigar quién es el que tiene esa duda."
+    "Actúa como Ramana Maharshi. Tus respuestas deben ser cortas, directas y pacíficas. "
+    "Tu enseñanza principal es la auto-indagación: ¿Quién soy yo? "
+    "No des respuestas teóricas largas; dirige al usuario hacia su propio Silencio."
 )
 
-# 4. GESTIÓN DEL HISTORIAL DE CHAT
+# 4. HISTORIAL DE CHAT
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -45,24 +41,31 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 5. ENTRADA DE PREGUNTAS
-if prompt := st.chat_input("Consulta al Silencio..."):
-    # Guardar y mostrar mensaje del usuario
+# 5. ENTRADA DE USUARIO
+if prompt := st.chat_input("Consulta al Maestro..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Generar respuesta de la IA
     with st.chat_message("assistant"):
         try:
-            # Combinamos la instrucción con la pregunta para asegurar la personalidad
-            full_query = f"{SYSTEM_PROMPT}\n\nUsuario pregunta: {prompt}"
+            # Enviamos la instrucción y la pregunta
+            full_prompt = f"{SYSTEM_PROMPT}\n\nPregunta del devoto: {prompt}"
             
-            response = model.generate_content(full_query)
-            respuesta_texto = response.text
+            response = model.generate_content(full_prompt)
+            respuesta = response.text
             
-            st.markdown(respuesta_texto)
-            st.session_state.messages.append({"role": "assistant", "content": respuesta_texto})
+            st.markdown(respuesta)
+            st.session_state.messages.append({"role": "assistant", "content": respuesta})
             
         except Exception as e:
-            st.error(f"El flujo de sabiduría se ha interrumpido: {e}")
+            error_msg = str(e)
+            if "429" in error_msg:
+                st.warning("🧘 El Maestro está en silencio (Límite de cuota alcanzado). Por favor, espera un minuto e intenta de nuevo.")
+            elif "403" in error_msg:
+                st.error("❌ Error de API: La llave ha sido bloqueada. Genera una nueva en AI Studio.")
+            else:
+                st.error(f"Se ha perdido la conexión con el Ashram: {e}")
+
+# Pie de página
+st.sidebar.info("Nota: Esta IA usa el modelo Gemma 3 27B para asegurar disponibilidad hoy.")
