@@ -9,7 +9,7 @@ st.title("🧘 Ramana Maharshi AI Guide")
 api_key = None
 
 if "GOOGLE_API_KEY" in st.secrets:
-    api_key = st.secrets["AIzaSyDwNLOvF5tpnxF7wI2JMVd27a-61FlfPzI"]
+    api_key = st.secrets["GOOGLE_API_KEY"]
 elif "google_api_key" in st.secrets:
     api_key = st.secrets["google_api_key"]
 
