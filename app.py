@@ -13,7 +13,7 @@ except:
     st.stop()
 
 # Configurar el modelo (Sin system_instruction por ahora para evitar el 404)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
