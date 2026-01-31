@@ -1,33 +1,35 @@
 import streamlit as st
 import google.generativeai as genai
 
-# CONFIGURACIÓN
+# Título de la App
 st.set_page_config(page_title="Ramana AI", page_icon="🧘")
 st.title("🧘 Ramana Maharshi AI Guide")
 
-# Intentar obtener la API Key de Secrets o de texto plano (para pruebas)
-try:
+# BUSCAR LA CLAVE (Intentamos varias formas)
+api_key = None
+
+if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["AIzaSyDwNLOvF5tpnxF7wI2JMVd27a-61FlfPzI"]
-except:
-    st.error("⚠️ No se encontró la API Key en 'Advanced Settings > Secrets'.")
+elif "google_api_key" in st.secrets:
+    api_key = st.secrets["google_api_key"]
+
+if not api_key:
+    st.warning("⚠️ No se encontró la API Key en Secrets.")
+    st.info("Asegúrate de que en Settings > Secrets diga: GOOGLE_API_KEY = 'tu_clave'")
     st.stop()
 
+# CONFIGURACIÓN DEL MODELO
 genai.configure(api_key=api_key)
 
-# Aquí definimos el comportamiento de Ramana Maharshi
 instruction = (
-    "Actúa como un sabio que sigue las enseñanzas de Ramana Maharshi. "
-    "Tus respuestas deben ser breves, pacíficas y directas al Sí Mismo. "
-    "Si te preguntan algo complejo, redirige al usuario a la pregunta: '¿Quién soy yo?'."
+    "Eres un sabio basado en las enseñanzas de Ramana Maharshi. "
+    "Responde de forma breve y pacífica. Tu mensaje central es que la felicidad "
+    "está en el interior y se alcanza mediante la pregunta '¿Quién soy yo?'."
 )
 
-# Usamos 'gemini-1.5-flash' que es el más estable
-model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
-    system_instruction=instruction
-)
+model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=instruction)
 
-# CHAT
+# CHAT INTERFACE
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -42,9 +44,8 @@ if prompt := st.chat_input("¿Quién soy yo?"):
     
     with st.chat_message("assistant"):
         try:
-            # Generar respuesta
             response = model.generate_content(prompt)
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
         except Exception as e:
-            st.error(f"Hubo un problema con la respuesta: {e}")
+            st.error(f"Error: {e}")
