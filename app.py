@@ -1,35 +1,20 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Título de la App
 st.set_page_config(page_title="Ramana AI", page_icon="🧘")
 st.title("🧘 Ramana Maharshi AI Guide")
 
-# BUSCAR LA CLAVE (Intentamos varias formas)
-api_key = None
-
-if "GOOGLE_API_KEY" in st.secrets:
+# Cargar API Key
+try:
     api_key = st.secrets["GOOGLE_API_KEY"]
-elif "google_api_key" in st.secrets:
-    api_key = st.secrets["google_api_key"]
-
-if not api_key:
-    st.warning("⚠️ No se encontró la API Key en Secrets.")
-    st.info("Asegúrate de que en Settings > Secrets diga: GOOGLE_API_KEY = 'tu_clave'")
+    genai.configure(api_key=api_key)
+except:
+    st.error("Configura GOOGLE_API_KEY en Secrets.")
     st.stop()
 
-# CONFIGURACIÓN DEL MODELO
-genai.configure(api_key=api_key)
+# Configurar el modelo (Sin system_instruction por ahora para evitar el 404)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-instruction = (
-    "Eres un sabio basado en las enseñanzas de Ramana Maharshi. "
-    "Responde de forma breve y pacífica. Tu mensaje central es que la felicidad "
-    "está en el interior y se alcanza mediante la pregunta '¿Quién soy yo?'."
-)
-
-model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=instruction)
-
-# CHAT INTERFACE
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -43,9 +28,11 @@ if prompt := st.chat_input("¿Quién soy yo?"):
         st.markdown(prompt)
     
     with st.chat_message("assistant"):
+        # Añadimos la instrucción directamente en el mensaje para mayor compatibilidad
+        full_prompt = f"Instrucción: Responde como Ramana Maharshi. Pregunta: {prompt}"
         try:
-            response = model.generate_content(prompt)
+            response = model.generate_content(full_prompt)
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error de conexión: {e}")
