@@ -25,7 +25,7 @@ except Exception:
 
 # 3. CONFIGURACIÓN DEL MODELO (Versión 2026)
 # Usamos gemini-2.0-flash por su velocidad y disponibilidad
-model = genai.GenerativeModel('gemini-2.0-flash')
+model = genai.GenerativeModel('gemini-2.0-flash-lite')
 
 # Instrucción de personalidad (System Prompt)
 SYSTEM_PROMPT = (
