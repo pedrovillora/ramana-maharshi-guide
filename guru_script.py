@@ -34,7 +34,7 @@ def limpiar_texto(texto):
 def preguntar(p: Pregunta):
     # Generar embedding pregunta
     response = client.embeddings.create(
-        model="deepseek-ai/DeepSeek-R1-0528",
+        model="BAAI/bge-multilingual-gemma2",
         input=p.pregunta
     )
     embedding_pregunta = response.data[0].embedding
@@ -63,7 +63,7 @@ def preguntar(p: Pregunta):
 
     # Generar respuesta
     chat_response = client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-8B-Instruct",
+        model="deepseek-ai/DeepSeek-R1-0528",
         messages=[
             {"role": "system", "content": "Eres un maestro Advaita."},
             {"role": "user", "content": prompt}
@@ -72,5 +72,6 @@ def preguntar(p: Pregunta):
     )
     respuesta_final = chat_response.choices[0].message.content
     respuesta_final = limpiar_texto(respuesta_final)
+
 
     return {"respuesta": respuesta_final}
