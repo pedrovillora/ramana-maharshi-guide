@@ -104,7 +104,7 @@ Responde con presencia y guía hacia la autoindagación.
             {"role": "system", "content": "Eres un maestro Advaita."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.5
+        temperature=0.5,
         max_tokens=280
     )
 
@@ -112,5 +112,6 @@ Responde con presencia y guía hacia la autoindagación.
     respuesta_final = limpiar_texto(respuesta_final)
 
     return {"respuesta": respuesta_final}
+
 
 
