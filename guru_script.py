@@ -104,11 +104,13 @@ Responde con presencia y guía hacia la autoindagación.
             {"role": "system", "content": "Eres un maestro Advaita."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.7
+        temperature=0.5
+        max_tokens=280
     )
 
     respuesta_final = chat_response.choices[0].message.content
     respuesta_final = limpiar_texto(respuesta_final)
 
     return {"respuesta": respuesta_final}
+
 
