@@ -1,10 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 import re
+import os
 
 # -----------------------------
 # Configuración del backend
@@ -12,9 +13,7 @@ import re
 app = FastAPI()
 
 # Permitir que Flutter web acceda a la API
-origins = [
-    "*",  # Para pruebas: permite todos los orígenes. En producción, reemplazar por tu dominio
-]
+origins = ["*"]  # Para pruebas. En producción, reemplazar por tu dominio
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,25 +27,32 @@ app.add_middleware(
 # Configuración Nebius/OpenAI
 # -----------------------------
 client = OpenAI(
-    api_key="v1.CmMKHHN0YXRpY2tleS1lMDBnYXRxam4wbTcxMG5rdGUSIXNlcnZpY2VhY2VudC...",
+    api_key="TU_API_KEY_AQUI",
     base_url="https://api.studio.nebius.ai/v1"
 )
 
 # -----------------------------
-# Cargar base vectorial y estilos de maestros
+# Cargar base vectorial
 # -----------------------------
 with open("base_vectorial.json", "r", encoding="utf-8") as f:
     base = json.load(f)
 
-with open("estilos_maestros.json", "r", encoding="utf-8") as f:
-    estilos_maestros = json.load(f)
+# -----------------------------
+# Cargar estilos de maestros
+# -----------------------------
+ruta_maestros = os.path.join(os.path.dirname(__file__), "estilos_maestros.json")
+with open(ruta_maestros, "r", encoding="utf-8") as f:
+    maestros = json.load(f)
+
+# Crear un diccionario rápido para buscar por nombre
+maestros_dict = {m["nombre"].lower(): m for m in maestros}
 
 # -----------------------------
 # Modelos de datos
 # -----------------------------
 class Pregunta(BaseModel):
     pregunta: str
-    maestro: str  # Ahora recibimos el maestro elegido
+    nombre_maestro: str
 
 # -----------------------------
 # Funciones auxiliares
@@ -68,6 +74,13 @@ def limpiar_texto(texto: str) -> str:
 # -----------------------------
 @app.post("/preguntar")
 def preguntar(p: Pregunta):
+    nombre_maestro = p.nombre_maestro.strip().lower()
+    
+    if nombre_maestro not in maestros_dict:
+        raise HTTPException(status_code=400, detail=f"Maestro '{p.nombre_maestro}' no encontrado.")
+    
+    maestro = maestros_dict[nombre_maestro]
+
     # -------------------------
     # Generar embedding de la pregunta
     # -------------------------
@@ -89,25 +102,16 @@ def preguntar(p: Pregunta):
     contexto = "\n\n".join(top_fragmentos)
 
     # -------------------------
-    # Construir prompt dinámico según maestro
+    # Construir prompt para el LLM
     # -------------------------
-    info_maestro = estilos_maestros.get(p.maestro, {})
-    descripcion = info_maestro.get("descripcion", "")
-    citas = ", ".join(info_maestro.get("citas", []))
-
     prompt = f"""
-Eres {p.maestro}, un maestro Advaita realizado.
-Estilo: {descripcion}
-Citas típicas: {citas}
-
-Contexto relevante:
+Eres {maestro['nombre']}, un maestro Advaita realizado.
+{maestro['descripcion']}
+Contexto:
 {contexto}
-
 Pregunta:
 {p.pregunta}
-
-Responde con la voz y estilo característico de {p.maestro}.
-Evita frases genéricas y responde directamente a la experiencia.
+Responde con presencia y guía hacia la autoindagación.
 """
 
     # -------------------------
@@ -116,18 +120,14 @@ Evita frases genéricas y responde directamente a la experiencia.
     chat_response = client.chat.completions.create(
         model="deepseek-ai/DeepSeek-V3.2",
         messages=[
-            {"role": "system", "content": f"Eres {p.maestro}, un maestro Advaita."},
+            {"role": "system", "content": f"Eres {maestro['nombre']}."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.6,
-        max_tokens=300
+        temperature=maestro.get("temperatura", 0.5),
+        max_tokens=280
     )
 
     respuesta_final = chat_response.choices[0].message.content
     respuesta_final = limpiar_texto(respuesta_final)
 
     return {"respuesta": respuesta_final}
-
-
-
-
