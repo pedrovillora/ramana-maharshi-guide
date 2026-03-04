@@ -24,21 +24,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+# -----------------------------
 # Configuración Nebius/OpenAI
-client = OpenAI(api_key="v1.CmMKHHN0YXRpY2tleS1lMDBnYXRxam4wbTcxMG5rdGUSIXNlcnZpY2VhY2NvdW50LWUwMGJtZzIwcjhxa2p6amcxczIMCObpm80GEITSn9ICOgsI5-yzmAcQgO3mQUACWgNlMDA.AAAAAAAAAAHqf7Ja1EvkLDRagvAlDPfZvbO7b78TNU7l_nbYkQhzILxI8IQAB0dq-AduKIfvxeK2_sUtbrYzrSw235m1yScG", base_url="https://api.studio.nebius.ai/v1")
+# -----------------------------
+client = OpenAI(
+    api_key="v1.CmMKHHN0YXRpY2tleS1lMDBnYXRxam4wbTcxMG5rdGUSIXNlcnZpY2VhY2VudC...",
+    base_url="https://api.studio.nebius.ai/v1"
+)
 
 # -----------------------------
-# Cargar base vectorial
+# Cargar base vectorial y estilos de maestros
 # -----------------------------
 with open("base_vectorial.json", "r", encoding="utf-8") as f:
     base = json.load(f)
+
+with open("estilos_maestros.json", "r", encoding="utf-8") as f:
+    estilos_maestros = json.load(f)
 
 # -----------------------------
 # Modelos de datos
 # -----------------------------
 class Pregunta(BaseModel):
     pregunta: str
+    maestro: str  # Ahora recibimos el maestro elegido
 
 # -----------------------------
 # Funciones auxiliares
@@ -64,7 +72,7 @@ def preguntar(p: Pregunta):
     # Generar embedding de la pregunta
     # -------------------------
     response = client.embeddings.create(
-        model="BAAI/bge-multilingual-gemma2",  # Modelo de embeddings
+        model="BAAI/bge-multilingual-gemma2",
         input=p.pregunta
     )
     embedding_pregunta = response.data[0].embedding
@@ -81,37 +89,45 @@ def preguntar(p: Pregunta):
     contexto = "\n\n".join(top_fragmentos)
 
     # -------------------------
-    # Construir prompt para el LLM
+    # Construir prompt dinámico según maestro
     # -------------------------
+    info_maestro = estilos_maestros.get(p.maestro, {})
+    descripcion = info_maestro.get("descripcion", "")
+    citas = ", ".join(info_maestro.get("citas", []))
+
     prompt = f"""
-Eres un maestro Advaita realizado.
-Habla con claridad y compasión, directo a la experiencia.
-Evita "según el texto" y razonamiento interno.
-Responde intermedio: profundo pero con párrafos cortos.
-Contexto:
+Eres {p.maestro}, un maestro Advaita realizado.
+Estilo: {descripcion}
+Citas típicas: {citas}
+
+Contexto relevante:
 {contexto}
+
 Pregunta:
 {p.pregunta}
-Responde con presencia y guía hacia la autoindagación.
+
+Responde con la voz y estilo característico de {p.maestro}.
+Evita frases genéricas y responde directamente a la experiencia.
 """
 
     # -------------------------
     # Generar respuesta del LLM
     # -------------------------
     chat_response = client.chat.completions.create(
-        model="deepseek-ai/DeepSeek-V3.2",  # Modelo de LLM
+        model="deepseek-ai/DeepSeek-V3.2",
         messages=[
-            {"role": "system", "content": "Eres un maestro Advaita."},
+            {"role": "system", "content": f"Eres {p.maestro}, un maestro Advaita."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.5,
-        max_tokens=280
+        temperature=0.6,
+        max_tokens=300
     )
 
     respuesta_final = chat_response.choices[0].message.content
     respuesta_final = limpiar_texto(respuesta_final)
 
     return {"respuesta": respuesta_final}
+
 
 
 
