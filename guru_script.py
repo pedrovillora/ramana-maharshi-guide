@@ -99,7 +99,7 @@ Responde con presencia y guía hacia la autoindagación.
     # Generar respuesta del LLM
     # -------------------------
     chat_response = client.chat.completions.create(
-        model="deepseek-ai/DeepSeek-R1-0528",  # Modelo de LLM
+        model="deepseek-ai/DeepSeek-V3.2",  # Modelo de LLM
         messages=[
             {"role": "system", "content": "Eres un maestro Advaita."},
             {"role": "user", "content": prompt}
@@ -111,3 +111,4 @@ Responde con presencia y guía hacia la autoindagación.
     respuesta_final = limpiar_texto(respuesta_final)
 
     return {"respuesta": respuesta_final}
+
